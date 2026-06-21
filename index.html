@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: rgba(255, 255, 255, 0.6);
+            --card-border: rgba(255, 255, 255, 0.5);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        /* --- Custom Searchable Dropdown --- */
+        .custom-select-wrapper {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            user-select: none;
+            width: 280px;
+        }
+
+        .custom-select-trigger {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .custom-select-trigger:hover {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+
+        .custom-options-container {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+        }
+
+        .custom-options-container.open {
+            display: flex;
+        }
+
+        .search-box {
+            padding: 10px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .search-box input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            width: 100%;
+        }
+
+        .search-box input:focus {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+            background: #ffffff;
+        }
+
+        .options-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .options-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .options-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .option-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-item:hover {
+            background: #f1f5f9;
+        }
+
+        /* --- Main Dashboard layout --- */
+        .dashboard-container {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 15px;
+            margin-top: 33px; /* Precision margin to sit exactly 12px (~3mm) below the absolute country box */
+        }
+
+        @media (max-width: 800px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        h2 {
+            font-weight: 600;
+            font-size: 1.15rem;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text-main);
+            font-family: inherit;
+            transition: all 0.3s ease;
+            height: 36px; /* Reduced fixed height */
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+            background: #ffffff;
+        }
+
+        .loans-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        /* Single Horizontal Box Layout */
+        .loan-card {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            padding: 12px 15px;
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 0.8fr 0.8fr 1.2fr 36px; /* Bank, Amount, Rate, Years, EMI, Button */
+            gap: 12px;
+            align-items: end; /* Aligns all inputs and button to the bottom line */
+            position: relative;
+            animation: fadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .loan-card .input-group {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 1100px) {
+            .loan-card {
+                grid-template-columns: 1fr 1fr;
+                align-items: start;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .loan-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-remove-loan-inline {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px; /* Matches input height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+
+        .btn-remove-loan-inline:hover {
+            background: var(--danger);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .loan-emi-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            white-space: nowrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 6px 10px;
+            font-size: 0.8rem;
+        }
+        
+        .btn-outline:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .summary-card {
+            position: sticky;
+            top: 40px;
+        }
+
+        .summary-item {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .summary-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -1px;
+        }
+
+        .summary-value.positive {
+            color: var(--success);
+        }
+
+        .summary-value.negative {
+            color: var(--danger);
+        }
+
+        .auto-save-indicator {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 0.75rem;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .auto-save-indicator.visible {
+            opacity: 1;
+        }
+
+        .auto-save-indicator.visible::before {
+            content: '●';
+            color: var(--success);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Custom Searchable Dropdown -->
+    <div class="custom-select-wrapper" id="countrySelectorWrapper">
+        <div class="custom-select-trigger" id="countrySelectorTrigger">
+            <span id="selectedCountry">🇮🇳 India (INR)</span>
+            <span style="font-size: 0.8rem; opacity: 0.5;">▼</span>
+        </div>
+        <div class="custom-options-container" id="countryOptionsContainer">
+            <div class="search-box">
+                <input type="text" id="countrySearchInput" placeholder="Search country...">
+            </div>
+            <div class="options-list" id="countryOptionsList">
+                <!-- Javascript populates this -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard-container">
+        <div class="main-content">
+            <div class="glass-panel" style="margin-bottom: 20px;">
+                <div class="auto-save-indicator" id="autoSaveIndicator">Auto-saved</div>
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label for="monthlySalary" style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); margin-bottom: 10px;">Monthly Salary (<span class="currency-symbol">₹</span>)</label>
+                    <input type="number" id="monthlySalary" placeholder="e.g. 50000" oninput="calculate()">
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h2>
+                    Active Loans
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-outline" onclick="clearData()">Clear All Data</button>
+                        <button class="btn btn-primary" onclick="addLoan()">+ Add Loan</button>
+                    </div>
+                </h2>
+                
+                <div id="loansList" class="loans-list">
+                    <!-- Dynamic loans appear here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="glass-panel summary-card">
+                <h2>Summary</h2>
+                
+                <div class="summary-item">
+                    <div class="summary-label">Monthly Income</div>
+                    <div class="summary-value" id="dispSalary">₹0.00</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Total Monthly EMI</div>
+                    <div class="summary-value negative" id="dispEmi">-₹0.00</div>
+                </div>
+
+                <div class="summary-item">
+                    <div class="summary-label">Remaining Balance</div>
+                    <div class="summary-value positive" id="dispBalance">₹0.00</div>
+                </div>
+
+                <div style="margin-top: 30px; position: relative; height: 220px; width: 100%; display: flex; justify-content: center;">
+                    <canvas id="financeChart"></canvas>
+                </div>
+                
+                <div style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid rgba(0, 0, 0, 0.08);">
+                    <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 6px;">Debt-to-Income Ratio</div>
+                    <div id="debtRatioDisplay" style="font-size: 1.8rem; font-weight: 700; color: var(--text-main);">0.0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Massive list of nearly 200 countries in alphabetical order
+        const countries = [
+            { name: "Afghanistan", code: "AFN", symbol: "؋", flag: "🇦🇫" },
+            { name: "Albania", code: "ALL", symbol: "L", flag: "🇦🇱" },
+            { name: "Algeria", code: "DZD", symbol: "د.ج", flag: "🇩🇿" },
+            { name: "Andorra", code: "EUR", symbol: "€", flag: "🇦🇩" },
+            { name: "Angola", code: "AOA", symbol: "Kz", flag: "🇦🇴" },
+            { name: "Antigua and Barbuda", code: "XCD", symbol: "$", flag: "🇦🇬" },
+            { name: "Argentina", code: "ARS", symbol: "$", flag: "🇦🇷" },
+            { name: "Armenia", code: "AMD", symbol: "֏", flag: "🇦🇲" },
+            { name: "Australia", code: "AUD", symbol: "A$", flag: "🇦🇺" },
+            { name: "Austria", code: "EUR", symbol: "€", flag: "🇦🇹" },
+            { name: "Azerbaijan", code: "AZN", symbol: "₼", flag: "🇦🇿" },
+            { name: "Bahamas", code: "BSD", symbol: "$", flag: "🇧🇸" },
+            { name: "Bahrain", code: "BHD", symbol: ".د.ب", flag: "🇧🇭" },
+            { name: "Bangladesh", code: "BDT", symbol: "৳", flag: "🇧🇩" },
+            { name: "Barbados", code: "BBD", symbol: "$", flag: "🇧🇧" },
+            { name: "Belarus", code: "BYN", symbol: "Br", flag: "🇧🇾" },
+            { name: "Belgium", code: "EUR", symbol: "€", flag: "🇧🇪" },
+            { name: "Belize", code: "BZD", symbol: "$", flag: "🇧🇿" },
+            { name: "Benin", code: "XOF", symbol: "CFA", flag: "🇧🇯" },
+            { name: "Bhutan", code: "BTN", symbol: "Nu.", flag: "🇧🇹" },
+            { name: "Bolivia", code: "BOB", symbol: "Bs.", flag: "🇧🇴" },
+            { name: "Bosnia and Herzegovina", code: "BAM", symbol: "KM", flag: "🇧🇦" },
+            { name: "Botswana", code: "BWP", symbol: "P", flag: "🇧🇼" },
+            { name: "Brazil", code: "BRL", symbol: "R$", flag: "🇧🇷" },
+            { name: "Brunei", code: "BND", symbol: "$", flag: "🇧🇳" },
+            { name: "Bulgaria", code: "BGN", symbol: "лв", flag: "🇧🇬" },
+            { name: "Burkina Faso", code: "XOF", symbol: "CFA", flag: "🇧🇫" },
+            { name: "Burundi", code: "BIF", symbol: "FBu", flag: "🇧🇮" },
+            { name: "Cabo Verde", code: "CVE", symbol: "$", flag: "🇨🇻" },
+            { name: "Cambodia", code: "KHR", symbol: "៛", flag: "🇰🇭" },
+            { name: "Cameroon", code: "XAF", symbol: "FCFA", flag: "🇨🇲" },
+            { name: "Canada", code: "CAD", symbol: "C$", flag: "🇨🇦" },
+            { name: "Central African Republic", code: "XAF", symbol: "FCFA", flag: "🇨🇫" },
+            { name: "Chad", code: "XAF", symbol: "FCFA", flag: "🇹🇩" },
+            { name: "Chile", code: "CLP", symbol: "$", flag: "🇨🇱" },
+            { name: "China", code: "CNY", symbol: "¥", flag: "🇨🇳" },
+            { name: "Colombia", code: "COP", symbol: "$", flag: "🇨🇴" },
+            { name: "Comoros", code: "KMF", symbol: "CF", flag: "🇰🇲" },
+            { name: "Congo (Brazzaville)", code: "XAF", symbol: "FCFA", flag: "🇨🇬" },
+            { name: "Congo (Kinshasa)", code: "CDF", symbol: "FC", flag: "🇨🇩" },
+            { name: "Costa Rica", code: "CRC", symbol: "₡", flag: "🇨🇷" },
+            { name: "Croatia", code: "EUR", symbol: "€", flag: "🇭🇷" },
+            { name: "Cuba", code: "CUP", symbol: "$", flag: "🇨🇺" },
+            { name: "Cyprus", code: "EUR", symbol: "€", flag: "🇨🇾" },
+            { name: "Czech Republic", code: "CZK", symbol: "Kč", flag: "🇨🇿" },
+            { name: "Denmark", code: "DKK", symbol: "kr", flag: "🇩🇰" },
+            { name: "Djibouti", code: "DJF", symbol: "Fdj", flag: "🇩🇯" },
+            { name: "Dominica", code: "XCD", symbol: "$", flag: "🇩🇲" },
+            { name: "Dominican Republic", code: "DOP", symbol: "RD$", flag: "🇩🇴" },
+            { name: "Ecuador", code: "USD", symbol: "$", flag: "🇪🇨" },
+            { name: "Egypt", code: "EGP", symbol: "£", flag: "🇪🇬" },
+            { name: "El Salvador", code: "USD", symbol: "$", flag: "🇸🇻" },
+            { name: "Equatorial Guinea", code: "XAF", symbol: "FCFA", flag: "🇬🇶" },
+            { name: "Eritrea", code: "ERN", symbol: "Nfk", flag: "🇪🇷" },
+            { name: "Estonia", code: "EUR", symbol: "€", flag: "🇪🇪" },
+            { name: "Eswatini", code: "SZL", symbol: "L", flag: "🇸🇿" },
+            { name: "Ethiopia", code: "ETB", symbol: "Br", flag: "🇪🇹" },
+            { name: "Fiji", code: "FJD", symbol: "$", flag: "🇫🇯" },
+            { name: "Finland", code: "EUR", symbol: "€", flag: "🇫🇮" },
+            { name: "France", code: "EUR", symbol: "€", flag: "🇫🇷" },
+            { name: "Gabon", code: "XAF", symbol: "FCFA", flag: "🇬🇦" },
+            { name: "Gambia", code: "GMD", symbol: "D", flag: "🇬🇲" },
+            { name: "Georgia", code: "GEL", symbol: "₾", flag: "🇬🇪" },
+            { name: "Germany", code: "EUR", symbol: "€", flag: "🇩🇪" },
+            { name: "Ghana", code: "GHS", symbol: "GH₵", flag: "🇬🇭" },
+            { name: "Greece", code: "EUR", symbol: "€", flag: "🇬🇷" },
+            { name: "Grenada", code: "XCD", symbol: "$", flag: "🇬🇩" },
+            { name: "Guatemala", code: "GTQ", symbol: "Q", flag: "🇬🇹" },
+            { name: "Guinea", code: "GNF", symbol: "FG", flag: "🇬🇳" },
+            { name: "Guinea-Bissau", code: "XOF", symbol: "CFA", flag: "🇬🇼" },
+            { name: "Guyana", code: "GYD", symbol: "$", flag: "🇬🇾" },
+            { name: "Haiti", code: "HTG", symbol: "G", flag: "🇭🇹" },
+            { name: "Honduras", code: "HNL", symbol: "L", flag: "🇭🇳" },
+            { name: "Hungary", code: "HUF", symbol: "Ft", flag: "🇭🇺" },
+            { name: "Iceland", code: "ISK", symbol: "kr", flag: "🇮🇸" },
+            { name: "India", code: "INR", symbol: "₹", flag: "🇮🇳" },
+            { name: "Indonesia", code: "IDR", symbol: "Rp", flag: "🇮🇩" },
+            { name: "Iran", code: "IRR", symbol: "﷼", flag: "🇮🇷" },
+            { name: "Iraq", code: "IQD", symbol: "ع.د", flag: "🇮🇶" },
+            { name: "Ireland", code: "EUR", symbol: "€", flag: "🇮🇪" },
+            { name: "Israel", code: "ILS", symbol: "₪", flag: "🇮🇱" },
+            { name: "Italy", code: "EUR", symbol: "€", flag: "🇮🇹" },
+            { name: "Jamaica", code: "JMD", symbol: "J$", flag: "🇯🇲" },
+            { name: "Japan", code: "JPY", symbol: "¥", flag: "🇯🇵" },
+            { name: "Jordan", code: "JOD", symbol: "د.ا", flag: "🇯🇴" },
+            { name: "Kazakhstan", code: "KZT", symbol: "₸", flag: "🇰🇿" },
+            { name: "Kenya", code: "KES", symbol: "KSh", flag: "🇰🇪" },
+            { name: "Kiribati", code: "AUD", symbol: "$", flag: "🇰🇮" },
+            { name: "Kuwait", code: "KWD", symbol: "د.ك", flag: "🇰🇼" },
+            { name: "Kyrgyzstan", code: "KGS", symbol: "с", flag: "🇰🇬" },
+            { name: "Laos", code: "LAK", symbol: "₭", flag: "🇱🇦" },
+            { name: "Latvia", code: "EUR", symbol: "€", flag: "🇱🇻" },
+            { name: "Lebanon", code: "LBP", symbol: "ل.ل", flag: "🇱🇧" },
+            { name: "Lesotho", code: "LSL", symbol: "L", flag: "🇱🇸" },
+            { name: "Liberia", code: "LRD", symbol: "$", flag: "🇱🇷" },
+            { name: "Libya", code: "LYD", symbol: "ل.د", flag: "🇱🇾" },
+            { name: "Liechtenstein", code: "CHF", symbol: "CHF", flag: "🇱🇮" },
+            { name: "Lithuania", code: "EUR", symbol: "€", flag: "🇱🇹" },
+            { name: "Luxembourg", code: "EUR", symbol: "€", flag: "🇱🇺" },
+            { name: "Madagascar", code: "MGA", symbol: "Ar", flag: "🇲🇬" },
+            { name: "Malawi", code: "MWK", symbol: "MK", flag: "🇲🇼" },
+            { name: "Malaysia", code: "MYR", symbol: "RM", flag: "🇲🇾" },
+            { name: "Maldives", code: "MVR", symbol: "Rf", flag: "🇲🇻" },
+            { name: "Mali", code: "XOF", symbol: "CFA", flag: "🇲🇱" },
+            { name: "Malta", code: "EUR", symbol: "€", flag: "🇲🇹" },
+            { name: "Marshall Islands", code: "USD", symbol: "$", flag: "🇲🇭" },
+            { name: "Mauritania", code: "MRU", symbol: "UM", flag: "🇲🇷" },
+            { name: "Mauritius", code: "MUR", symbol: "₨", flag: "🇲🇺" },
+            { name: "Mexico", code: "MXN", symbol: "$", flag: "🇲🇽" },
+            { name: "Micronesia", code: "USD", symbol: "$", flag: "🇫🇲" },
+            { name: "Moldova", code: "MDL", symbol: "L", flag: "🇲🇩" },
+            { name: "Monaco", code: "EUR", symbol: "€", flag: "🇲🇨" },
+            { name: "Mongolia", code: "MNT", symbol: "₮", flag: "🇲🇳" },
+            { name: "Montenegro", code: "EUR", symbol: "€", flag: "🇲🇪" },
+            { name: "Morocco", code: "MAD", symbol: "د.م.", flag: "🇲🇦" },
+            { name: "Mozambique", code: "MZN", symbol: "MT", flag: "🇲🇿" },
+            { name: "Myanmar", code: "MMK", symbol: "Ks", flag: "🇲🇲" },
+            { name: "Namibia", code: "NAD", symbol: "$", flag: "🇳🇦" },
+            { name: "Nauru", code: "AUD", symbol: "$", flag: "🇳🇷" },
+            { name: "Nepal", code: "NPR", symbol: "₨", flag: "🇳🇵" },
+            { name: "Netherlands", code: "EUR", symbol: "€", flag: "🇳🇱" },
+            { name: "New Zealand", code: "NZD", symbol: "$", flag: "🇳🇿" },
+            { name: "Nicaragua", code: "NIO", symbol: "C$", flag: "🇳🇮" },
+            { name: "Niger", code: "XOF", symbol: "CFA", flag: "🇳🇪" },
+            { name: "Nigeria", code: "NGN", symbol: "₦", flag: "🇳🇬" },
+            { name: "North Korea", code: "KPW", symbol: "₩", flag: "🇰🇵" },
+            { name: "North Macedonia", code: "MKD", symbol: "ден", flag: "🇲🇰" },
+            { name: "Norway", code: "NOK", symbol: "kr", flag: "🇳🇴" },
+            { name: "Oman", code: "OMR", symbol: "ر.ع.", flag: "🇴🇲" },
+            { name: "Pakistan", code: "PKR", symbol: "₨", flag: "🇵🇰" },
+            { name: "Palau", code: "USD", symbol: "$", flag: "🇵🇼" },
+            { name: "Panama", code: "PAB", symbol: "B/.", flag: "🇵🇦" },
+            { name: "Papua New Guinea", code: "PGK", symbol: "K", flag: "🇵🇬" },
+            { name: "Paraguay", code: "PYG", symbol: "₲", flag: "🇵🇾" },
+            { name: "Peru", code: "PEN", symbol: "S/.", flag: "🇵🇪" },
+            { name: "Philippines", code: "PHP", symbol: "₱", flag: "🇵🇭" },
+            { name: "Poland", code: "PLN", symbol: "zł", flag: "🇵🇱" },
+            { name: "Portugal", code: "EUR", symbol: "€", flag: "🇵🇹" },
+            { name: "Qatar", code: "QAR", symbol: "ر.ق", flag: "🇶🇦" },
+            { name: "Romania", code: "RON", symbol: "lei", flag: "🇷🇴" },
+            { name: "Russia", code: "RUB", symbol: "₽", flag: "🇷🇺" },
+            { name: "Rwanda", code: "RWF", symbol: "FRw", flag: "🇷🇼" },
+            { name: "Saint Kitts and Nevis", code: "XCD", symbol: "$", flag: "🇰🇳" },
+            { name: "Saint Lucia", code: "XCD", symbol: "$", flag: "🇱🇨" },
+            { name: "Saint Vincent and the Grenadines", code: "XCD", symbol: "$", flag: "🇻🇨" },
+            { name: "Samoa", code: "WST", symbol: "T", flag: "🇼🇸" },
+            { name: "San Marino", code: "EUR", symbol: "€", flag: "🇸🇲" },
+            { name: "Sao Tome and Principe", code: "STN", symbol: "Db", flag: "🇸🇹" },
+            { name: "Saudi Arabia", code: "SAR", symbol: "﷼", flag: "🇸🇦" },
+            { name: "Senegal", code: "XOF", symbol: "CFA", flag: "🇸🇳" },
+            { name: "Serbia", code: "RSD", symbol: "дин.", flag: "🇷🇸" },
+            { name: "Seychelles", code: "SCR", symbol: "₨", flag: "🇸🇨" },
+            { name: "Sierra Leone", code: "SLL", symbol: "Le", flag: "🇸🇱" },
+            { name: "Singapore", code: "SGD", symbol: "S$", flag: "🇸🇬" },
+            { name: "Slovakia", code: "EUR", symbol: "€", flag: "🇸🇰" },
+            { name: "Slovenia", code: "EUR", symbol: "€", flag: "🇸🇮" },
+            { name: "Solomon Islands", code: "SBD", symbol: "$", flag: "🇸🇧" },
+            { name: "Somalia", code: "SOS", symbol: "Sh", flag: "🇸🇴" },
+            { name: "South Africa", code: "ZAR", symbol: "R", flag: "🇿🇦" },
+            { name: "South Korea", code: "KRW", symbol: "₩", flag: "🇰🇷" },
+            { name: "South Sudan", code: "SSP", symbol: "£", flag: "🇸🇸" },
+            { name: "Spain", code: "EUR", symbol: "€", flag: "🇪🇸" },
+            { name: "Sri Lanka", code: "LKR", symbol: "Rs", flag: "🇱🇰" },
+            { name: "Sudan", code: "SDG", symbol: "ج.س.", flag: "🇸🇩" },
+            { name: "Suriname", code: "SRD", symbol: "$", flag: "🇸🇷" },
+            { name: "Sweden", code: "SEK", symbol: "kr", flag: "🇸🇪" },
+            { name: "Switzerland", code: "CHF", symbol: "CHF", flag: "🇨🇭" },
+            { name: "Syria", code: "SYP", symbol: "£", flag: "🇸🇾" },
+            { name: "Taiwan", code: "TWD", symbol: "NT$", flag: "🇹🇼" },
+            { name: "Tajikistan", code: "TJS", symbol: "SM", flag: "🇹🇯" },
+            { name: "Tanzania", code: "TZS", symbol: "TSh", flag: "🇹🇿" },
+            { name: "Thailand", code: "THB", symbol: "฿", flag: "🇹🇭" },
+            { name: "Timor-Leste", code: "USD", symbol: "$", flag: "🇹🇱" },
+            { name: "Togo", code: "XOF", symbol: "CFA", flag: "🇹🇬" },
+            { name: "Tonga", code: "TOP", symbol: "T$", flag: "🇹🇴" },
+            { name: "Trinidad and Tobago", code: "TTD", symbol: "TT$", flag: "🇹🇹" },
+            { name: "Tunisia", code: "TND", symbol: "د.ت", flag: "🇹🇳" },
+            { name: "Turkey", code: "TRY", symbol: "₺", flag: "🇹🇷" },
+            { name: "Turkmenistan", code: "TMT", symbol: "T", flag: "🇹🇲" },
+            { name: "Tuvalu", code: "AUD", symbol: "$", flag: "🇹🇻" },
+            { name: "Uganda", code: "UGX", symbol: "USh", flag: "🇺🇬" },
+            { name: "Ukraine", code: "UAH", symbol: "₴", flag: "🇺🇦" },
+            { name: "United Arab Emirates", code: "AED", symbol: "د.إ", flag: "🇦🇪" },
+            { name: "United Kingdom", code: "GBP", symbol: "£", flag: "🇬🇧" },
+            { name: "United States", code: "USD", symbol: "$", flag: "🇺🇸" },
+            { name: "Uruguay", code: "UYU", symbol: "$U", flag: "🇺🇾" },
+            { name: "Uzbekistan", code: "UZS", symbol: "so'm", flag: "🇺🇿" },
+            { name: "Vanuatu", code: "VUV", symbol: "VT", flag: "🇻🇺" },
+            { name: "Vatican City", code: "EUR", symbol: "€", flag: "🇻🇦" },
+            { name: "Venezuela", code: "VES", symbol: "Bs.S.", flag: "🇻🇪" },
+            { name: "Vietnam", code: "VND", symbol: "₫", flag: "🇻🇳" },
+            { name: "Yemen", code: "YER", symbol: "﷼", flag: "🇾🇪" },
+            { name: "Zambia", code: "ZMW", symbol: "ZK", flag: "🇿🇲" },
+            { name: "Zimbabwe", code: "ZWL", symbol: "$", flag: "🇿🇼" }
+        ];
+
+        // Custom Dropdown Logic
+        const wrapper = document.getElementById('countrySelectorWrapper');
+        const trigger = document.getElementById('countrySelectorTrigger');
+        const container = document.getElementById('countryOptionsContainer');
+        const searchInput = document.getElementById('countrySearchInput');
+        const optionsList = document.getElementById('countryOptionsList');
+        const selectedDisplay = document.getElementById('selectedCountry');
+        const autoSaveIndicator = document.getElementById('autoSaveIndicator');
+
+        let loanIdCounter = 0;
+        let currentCountryName = 'India';
+        let currentCurrencyCode = 'INR';
+        let currentCurrencySymbol = '₹';
+        let isInitialLoad = true;
+        let financeChart = null;
+
+        // Register ChartDataLabels globally
+        Chart.register(ChartDataLabels);
+
+        function updateChart(salary, totalEmi) {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            const remaining = Math.max(0, salary - totalEmi);
+            
+            const data = [totalEmi, remaining];
+            const labels = ['Total EMI', 'Remaining Balance'];
+            const colors = ['#ef4444', '#10b981']; // danger red, success green
+
+            // Calculate and Update Debt Ratio
+            let debtRatio = 0;
+            if (salary > 0) {
+                debtRatio = (totalEmi / salary) * 100;
+            }
+            const debtRatioEl = document.getElementById('debtRatioDisplay');
+            if (debtRatioEl) {
+                debtRatioEl.innerText = debtRatio.toFixed(1) + '%';
+                // Dynamic color based on financial health
+                if (debtRatio === 0) debtRatioEl.style.color = 'var(--text-main)';
+                else if (debtRatio <= 35) debtRatioEl.style.color = 'var(--success)'; // Good
+                else if (debtRatio <= 50) debtRatioEl.style.color = '#f59e0b'; // Warning/Amber
+                else debtRatioEl.style.color = 'var(--danger)'; // Danger
+            }
+
+            // If empty, show a gray placeholder pie
+            if (salary === 0 && totalEmi === 0) {
+                data[0] = 0; data[1] = 1; 
+                colors[0] = '#e2e8f0'; colors[1] = '#e2e8f0';
+            }
+
+            if (financeChart) {
+                financeChart.data.datasets[0].data = data;
+                financeChart.data.datasets[0].backgroundColor = colors;
+                financeChart.update();
+            } else {
+                financeChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#1e293b',
+                                    font: { family: 'Inter', size: 13 },
+                                    padding: 15
+                                }
+                            },
+                            datalabels: {
+                                color: '#ffffff',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14,
+                                    family: 'Inter'
+                                },
+                                formatter: (value, context) => {
+                                    // Don't show labels on empty placeholder
+                                    if (salary === 0 && totalEmi === 0) return '';
+                                    
+                                    let sum = 0;
+                                    let dataArr = context.chart.data.datasets[0].data;
+                                    dataArr.forEach(data => {
+                                        sum += data;
+                                    });
+                                    if (sum === 0) return '';
+                                    let percentage = (value * 100 / sum).toFixed(1) + '%';
+                                    
+                                    // Hide 0% labels for clean UI
+                                    if (value === 0) return '';
+                                    
+                                    return percentage;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderOptions(filterText = "") {
+            optionsList.innerHTML = "";
+            const filtered = countries.filter(c => c.name.toLowerCase().includes(filterText.toLowerCase()));
+            
+            if(filtered.length === 0) {
+                optionsList.innerHTML = `<div class="option-item" style="color:#999; cursor:default; justify-content:center;">No results found</div>`;
+                return;
+            }
+
+            filtered.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'option-item';
+                div.innerHTML = `<span>${c.flag}</span> <span>${c.name} (${c.code})</span>`;
+                div.onclick = () => selectCountry(c);
+                optionsList.appendChild(div);
+            });
+        }
+
+        function selectCountry(c) {
+            currentCountryName = c.name;
+            currentCurrencyCode = c.code;
+            currentCurrencySymbol = c.symbol;
+            selectedDisplay.innerHTML = `<span>${c.flag}</span> <span>${c.name} (${c.code})</span>`;
+            container.classList.remove('open');
+            
+            // Update labels that show the currency symbol
+            document.querySelectorAll('.currency-symbol').forEach(el => {
+                el.innerText = currentCurrencySymbol;
+            });
+            
+            // Recalculate to format the text with the new currency
+            calculate();
+        }
+
+        trigger.onclick = () => {
+            const isOpen = container.classList.contains('open');
+            if(isOpen) {
+                container.classList.remove('open');
+            } else {
+                container.classList.add('open');
+                searchInput.value = '';
+                renderOptions();
+                searchInput.focus();
+            }
+        };
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if(!wrapper.contains(e.target)) {
+                container.classList.remove('open');
+            }
+        });
+
+        searchInput.oninput = (e) => {
+            renderOptions(e.target.value);
+        };
+
+        // Initialize Options
+        renderOptions();
+
+
+        // Financial Logic & Data Persistence
+        function addLoan(data = null) {
+            const loansList = document.getElementById('loansList');
+            const id = loanIdCounter++;
+            
+            const bankVal = data ? data.bank : '';
+            const amountVal = data ? data.amount : '';
+            const rateVal = data ? data.rate : '';
+            const durationVal = data ? data.duration : '';
+            
+            const loanHTML = `
+                <div class="loan-card" id="loan-${id}">
+                    <div class="input-group">
+                        <label>Bank Name</label>
+                        <input type="text" class="loan-bank" placeholder="e.g. HDFC" value="${bankVal}" oninput="calculate()">
+                    </div>
+                    <div class="input-group">
+                        <label>Amount (<span class="currency-symbol">${currentCurrencySymbol}</span>)</label>
+                        <input type="number" class="loan-amount" placeholder="e.g. 10000" value="${amountVal}" oninput="calculate()">
+                    </div>
+                    <div class="input-group">
+                        <label>Rate (%)</label>
+                        <input type="number" class="loan-rate" placeholder="e.g. 5.5" step="0.1" value="${rateVal}" oninput="calculate()">
+                    </div>
+                    <div class="input-group">
+                        <label>Years</label>
+                        <input type="number" class="loan-duration" placeholder="e.g. 5" value="${durationVal}" oninput="calculate()">
+                    </div>
+                    <div class="input-group">
+                        <label>Monthly EMI</label>
+                        <div class="loan-emi-value emi-value" style="height: 36px; display: flex; align-items: center;">${formatCurrency(0)}</div>
+                    </div>
+                    <button class="btn-remove-loan-inline" onclick="removeLoan(${id})" title="Remove Loan">✕</button>
+                </div>
+            `;
+            
+            loansList.insertAdjacentHTML('beforeend', loanHTML);
+            if (!isInitialLoad) calculate();
+        }
+
+        function removeLoan(id) {
+            const loanElement = document.getElementById(`loan-${id}`);
+            if (loanElement) {
+                loanElement.remove();
+                calculate();
+            }
+        }
+
+        function calculate() {
+            const salaryInput = document.getElementById('monthlySalary').value;
+            const salary = parseFloat(salaryInput) || 0;
+
+            const loanCards = document.querySelectorAll('.loan-card');
+            let totalEmi = 0;
+
+            loanCards.forEach(card => {
+                const p = parseFloat(card.querySelector('.loan-amount').value) || 0;
+                const annualRate = parseFloat(card.querySelector('.loan-rate').value) || 0;
+                const years = parseFloat(card.querySelector('.loan-duration').value) || 0;
+                const emiDisplay = card.querySelector('.emi-value');
+
+                let emi = 0;
+
+                if (p > 0 && annualRate > 0 && years > 0) {
+                    const r = (annualRate / 100) / 12; 
+                    const n = years * 12; 
+                    
+                    emi = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+                    totalEmi += emi;
+                } else if (p > 0 && annualRate === 0 && years > 0) {
+                    emi = p / (years * 12);
+                    totalEmi += emi;
+                }
+                
+                emiDisplay.innerText = formatCurrency(emi);
+            });
+
+            const balance = salary - totalEmi;
+
+            document.getElementById('dispSalary').innerText = formatCurrency(salary);
+            document.getElementById('dispEmi').innerText = '-' + formatCurrency(totalEmi);
+            
+            const dispBalance = document.getElementById('dispBalance');
+            dispBalance.innerText = formatCurrency(balance);
+            
+            if (balance < 0) {
+                dispBalance.classList.remove('positive');
+                dispBalance.classList.add('negative');
+            } else {
+                dispBalance.classList.remove('negative');
+                dispBalance.classList.add('positive');
+            }
+
+            if (!isInitialLoad) {
+                saveData();
+            }
+
+            updateChart(salary, totalEmi);
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: currentCurrencyCode,
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
+        // --- Data Persistence using Local Storage ---
+        
+        let saveTimeout;
+        
+        function saveData() {
+            const salary = document.getElementById('monthlySalary').value;
+            const loans = [];
+            document.querySelectorAll('.loan-card').forEach(card => {
+                loans.push({
+                    bank: card.querySelector('.loan-bank').value,
+                    amount: card.querySelector('.loan-amount').value,
+                    rate: card.querySelector('.loan-rate').value,
+                    duration: card.querySelector('.loan-duration').value
+                });
+            });
+            const data = {
+                countryName: currentCountryName,
+                currencyCode: currentCurrencyCode,
+                salary: salary,
+                loans: loans
+            };
+            localStorage.setItem('financialDashboardData', JSON.stringify(data));
+            
+            // Show auto-save indicator
+            autoSaveIndicator.classList.add('visible');
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                autoSaveIndicator.classList.remove('visible');
+            }, 2000);
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('financialDashboardData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    
+                    // Restore Currency
+                    if (data.countryName) {
+                        const c = countries.find(x => x.name === data.countryName);
+                        if (c) {
+                            currentCountryName = c.name;
+                            currentCurrencyCode = c.code;
+                            currentCurrencySymbol = c.symbol;
+                            selectedDisplay.innerHTML = `<span>${c.flag}</span> <span>${c.name} (${c.code})</span>`;
+                            document.querySelectorAll('.currency-symbol').forEach(el => {
+                                el.innerText = currentCurrencySymbol;
+                            });
+                        }
+                    } else if (data.currencyCode) {
+                        const c = countries.find(x => x.code === data.currencyCode);
+                        if (c) {
+                            currentCountryName = c.name;
+                            currentCurrencyCode = c.code;
+                            currentCurrencySymbol = c.symbol;
+                            selectedDisplay.innerHTML = `<span>${c.flag}</span> <span>${c.name} (${c.code})</span>`;
+                            document.querySelectorAll('.currency-symbol').forEach(el => {
+                                el.innerText = currentCurrencySymbol;
+                            });
+                        }
+                    }
+
+                    // Restore Salary
+                    if (data.salary !== undefined) {
+                        document.getElementById('monthlySalary').value = data.salary;
+                    }
+
+                    // Restore Loans
+                    if (data.loans && data.loans.length > 0) {
+                        document.getElementById('loansList').innerHTML = ''; // clear any existing
+                        data.loans.forEach(loanData => addLoan(loanData));
+                    } else {
+                        addLoan(); // default empty if none saved
+                    }
+                } catch (e) {
+                    console.error("Error loading saved data", e);
+                    addLoan();
+                }
+            } else {
+                addLoan(); // default empty
+            }
+            
+            isInitialLoad = false;
+            calculate();
+        }
+
+        function clearData() {
+            if(confirm("Are you sure you want to clear all data and start over?")) {
+                localStorage.removeItem('financialDashboardData');
+                document.getElementById('monthlySalary').value = '';
+                document.getElementById('loansList').innerHTML = '';
+                
+                // Reset to default India
+                const india = countries.find(x => x.name === "India");
+                if(india) selectCountry(india);
+
+                addLoan();
+                calculate();
+            }
+        }
+
+        // Initialize application by loading data
+        loadData();
+
+    </script>
+</body>
+</html>
