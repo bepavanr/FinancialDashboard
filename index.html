@@ -395,6 +395,15 @@
 
     <!-- Top Right Controls -->
     <div class="top-controls">
+        <div id="authButtons" style="display: flex; gap: 10px;">
+            <button class="btn" style="background: rgba(255, 255, 255, 0.8); color: var(--text-main); border: 1px solid rgba(200, 200, 200, 0.5); height: 46px; border-radius: 12px; font-size: 0.95rem; display: flex; align-items: center; backdrop-filter: blur(10px); transition: all 0.3s ease;" onmouseover="this.style.background='#ffffff'; this.style.borderColor='var(--primary)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.8)'; this.style.borderColor='rgba(200, 200, 200, 0.5)';" onclick="window.signInWithGoogle()">Sign In</button>
+            <button class="btn btn-primary" style="height: 46px; border-radius: 12px; font-size: 0.95rem; display: flex; align-items: center;" onclick="window.signInWithGoogle()">Sign Up</button>
+        </div>
+        <div id="userProfile" style="display: none; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(200, 200, 200, 0.5); border-radius: 12px; padding: 4px 12px 4px 4px; backdrop-filter: blur(10px); height: 46px;">
+            <img id="userAvatar" src="" alt="User" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;">
+            <span id="userName" style="font-size: 0.9rem; font-weight: 500; color: var(--text-main); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
+            <button onclick="window.signOutUser()" style="background: none; border: none; color: var(--danger); font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: 5px;">Logout</button>
+        </div>
         <button class="btn btn-primary" onclick="alert('Financial Tips:\n1. Save at least 20% of your income.\\n2. Keep your debt-to-income ratio below 35%.\\n3. Build an emergency fund for 3-6 months of expenses.')" style="height: 46px; border-radius: 12px; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 1.2rem;">💡</span> Financial Tips
         </button>
@@ -1066,6 +1075,53 @@
         // Initialize application by loading data
         loadData();
 
+    </script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpyRQaDnmRzNmN4iBFCIwVLcu2WZEEimw",
+            authDomain: "financial-dash-ag-2026.firebaseapp.com",
+            projectId: "financial-dash-ag-2026",
+            storageBucket: "financial-dash-ag-2026.firebasestorage.app",
+            messagingSenderId: "460337903018",
+            appId: "1:460337903018:web:5aebb90697bc52497927d3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        window.signInWithGoogle = () => {
+            signInWithPopup(auth, provider).catch(error => {
+                console.error("Error signing in:", error);
+                alert("Error signing in: " + error.message);
+            });
+        };
+
+        window.signOutUser = () => {
+            signOut(auth).catch(error => {
+                console.error("Error signing out:", error);
+            });
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            const authButtons = document.getElementById('authButtons');
+            const userProfile = document.getElementById('userProfile');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+
+            if (user) {
+                authButtons.style.display = 'none';
+                userProfile.style.display = 'flex';
+                userAvatar.src = user.photoURL || 'https://via.placeholder.com/38';
+                userName.textContent = user.displayName || user.email;
+            } else {
+                authButtons.style.display = 'flex';
+                userProfile.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
